@@ -1,24 +1,29 @@
-# Use an official Python runtime as a parent image
+# Use a faster, smaller base image
 FROM python:3.9-slim
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies required for mysqlclient
-RUN apt-get update && apt-get install -y gcc default-libmysqlclient-dev pkg-config && \
+# Use a FAST Debian mirror (Cloudflare)
+RUN sed -i 's|deb.debian.org|deb.debian.org.cloudflare-dns.com|g' /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        default-libmysqlclient-dev \
+        pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file to leverage Docker cache
+# Copy requirements first (better caching)
 COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# Copy the rest of the app
 COPY . .
 
-# Expose the port the app runs on
+# Expose Flask port
 EXPOSE 5000
 
-# Command to run the application
+# Run the app
 CMD ["python", "app.py"]
